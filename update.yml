@@ -1,0 +1,33 @@
+# 毎日自動で最新データを取りに行き、data.js を更新する設定です。
+# GitHub の「Actions」という機能が、この内容のとおりに動きます。
+
+name: Update market data
+
+on:
+  schedule:
+    # 時刻は世界標準時（UTC）で書く決まりです。日本時間は +9 時間。
+    - cron: '30 22 * * *'   # 日本時間 7:30（アメリカ市場が終わったあと）
+    - cron: '30 7 * * *'    # 日本時間 16:30（日本市場が終わったあと）
+  workflow_dispatch:        # 手動で「今すぐ更新」するボタンを有効にする
+
+permissions:
+  contents: write           # data.js を保存するための許可
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: ファイルを取り出す
+        uses: actions/checkout@v4
+
+      - name: データを取得する
+        shell: pwsh
+        run: ./update.ps1
+
+      - name: 更新した data.js を保存する
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data.js
+          git diff --cached --quiet || git commit -m "Update market data"
+          git push

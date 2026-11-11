@@ -1,0 +1,484 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>にゃんこマーケット</title>
+<style>
+  :root {
+    --bg: #0b1020;
+    --panel: #141b2f;
+    --panel-2: #1b2440;
+    --line: #27314f;
+    --text: #eef2ff;
+    --text-2: #aab4d4;
+    --muted: #7682a6;
+    --accent: #5cc8ff;
+    --up: #ff6b76;      /* 上がった（日本式：赤） */
+    --down: #3ddc97;    /* 下がった（日本式：緑） */
+    --cat: #f6a94a;
+    --bubble: #20294a;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: radial-gradient(1200px 600px at 80% -10%, #1a2550 0%, var(--bg) 60%) fixed, var(--bg);
+    color: var(--text);
+    font-family: "Segoe UI", "Hiragino Sans", "Yu Gothic UI", "Meiryo", sans-serif;
+    line-height: 1.6;
+  }
+  a { color: inherit; }
+  .wrap { max-width: 1160px; margin: 0 auto; padding: 20px 16px 60px; }
+
+  header.top { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 18px; }
+  header.top h1 { font-size: 22px; margin: 0; letter-spacing: .04em; }
+  header.top .updated { margin-left: auto; color: var(--text-2); font-size: 13px; text-align: right; }
+  .cat-icon { width: 44px; height: 44px; flex: none; }
+
+  .banner { background: #3a2a12; border: 1px solid #7a5a1e; color: #ffe2a8; border-radius: 12px; padding: 10px 14px; margin-bottom: 16px; font-size: 14px; }
+
+  .hello { display: flex; gap: 14px; align-items: flex-start; background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 16px; margin-bottom: 22px; }
+  .hello .cat-icon { width: 72px; height: 72px; }
+  .hello h2 { margin: 0 0 4px; font-size: 15px; color: var(--cat); }
+  .hello p { margin: 0 0 6px; font-size: 15px; }
+  .hello .note { color: var(--muted); font-size: 12px; margin: 6px 0 0; }
+
+  .toolbar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }
+  .seg { display: inline-flex; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 3px; }
+  .seg button { background: none; border: 0; color: var(--text-2); padding: 6px 14px; border-radius: 8px; font: inherit; font-size: 13px; cursor: pointer; }
+  .seg button[aria-pressed="true"] { background: var(--accent); color: #06203a; font-weight: 700; }
+  .legend { color: var(--text-2); font-size: 13px; display: flex; gap: 14px; flex-wrap: wrap; }
+  .legend b.up { color: var(--up); } .legend b.down { color: var(--down); }
+
+  h2.section { font-size: 16px; margin: 26px 0 10px; display: flex; align-items: center; gap: 8px; }
+  h2.section::before { content: ""; width: 4px; height: 18px; background: var(--accent); border-radius: 2px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 14px; }
+
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 16px; min-width: 0; }
+  .card .name { font-size: 16px; font-weight: 700; }
+  .card .sub { color: var(--muted); font-size: 12px; }
+  .card .row { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-top: 6px; }
+  .card .value { font-size: 30px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: .01em; }
+  .card .unit { font-size: 13px; color: var(--text-2); margin-left: 2px; font-weight: 400; }
+  .pill { font-size: 13px; font-weight: 700; padding: 3px 9px; border-radius: 999px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .pill.up { color: var(--up); background: rgba(255,107,118,.13); }
+  .pill.down { color: var(--down); background: rgba(61,220,151,.13); }
+  .pill.flat { color: var(--text-2); background: rgba(170,180,212,.12); }
+  .card .meta { color: var(--muted); font-size: 12px; margin-top: 2px; }
+
+  .chart { position: relative; margin-top: 10px; height: 150px; touch-action: pan-y; }
+  .chart svg { display: block; width: 100%; height: 100%; }
+  .tip { position: absolute; top: 0; pointer-events: none; background: #0a0f1f; border: 1px solid var(--line); border-radius: 8px; padding: 4px 8px; font-size: 12px; white-space: nowrap; display: none; font-variant-numeric: tabular-nums; }
+  .tip b { font-size: 13px; }
+
+  .explain { display: flex; gap: 10px; align-items: flex-start; margin-top: 12px; }
+  .explain .cat-icon { width: 34px; height: 34px; margin-top: 2px; }
+  .bubble { background: var(--bubble); border-radius: 4px 14px 14px 14px; padding: 9px 12px; font-size: 13px; color: var(--text); flex: 1; min-width: 0; }
+  .bubble .q { color: var(--cat); font-weight: 700; font-size: 12px; display: block; }
+  .bubble details { margin-top: 6px; }
+  .bubble summary { cursor: pointer; color: var(--accent); font-size: 12px; }
+  .bubble details p { margin: 6px 0 0; color: var(--text-2); }
+
+  .news { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 14px; }
+  .news .card h3 { margin: 0 0 6px; font-size: 14px; color: var(--text-2); }
+  .news ul { list-style: none; margin: 0; padding: 0; }
+  .news li { border-top: 1px solid var(--line); padding: 9px 0; }
+  .news li:first-child { border-top: 0; }
+  .news a { text-decoration: none; font-size: 14px; display: block; }
+  .news a:hover { color: var(--accent); text-decoration: underline; }
+  .news time { color: var(--muted); font-size: 12px; }
+
+  .dict { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 10px; }
+  .dict div { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; font-size: 13px; color: var(--text-2); }
+  .dict b { display: block; color: var(--text); font-size: 14px; margin-bottom: 2px; }
+
+  footer { margin-top: 30px; color: var(--muted); font-size: 12px; border-top: 1px solid var(--line); padding-top: 14px; }
+  footer li { margin-bottom: 3px; }
+
+  .empty { text-align: center; padding: 60px 16px; }
+  .empty .cat-icon { width: 110px; height: 110px; }
+
+  @media (max-width: 520px) {
+    header.top .updated { margin-left: 0; text-align: left; width: 100%; }
+    .grid, .news { grid-template-columns: 1fr; }
+    .card .value { font-size: 26px; }
+    .hello .cat-icon { width: 54px; height: 54px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- 猫キャラクター「トラ先生」（オリジナルのイラスト） -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="cat" viewBox="0 0 100 100">
+    <path d="M14 44 L18 8 L44 26 Z" fill="#f6a94a"/>
+    <path d="M86 44 L82 8 L56 26 Z" fill="#f6a94a"/>
+    <path d="M21 34 L23 17 L36 27 Z" fill="#ffd9d2"/>
+    <path d="M79 34 L77 17 L64 27 Z" fill="#ffd9d2"/>
+    <ellipse cx="50" cy="56" rx="40" ry="35" fill="#f6a94a"/>
+    <path d="M50 22 v12 M40 24 l2 10 M60 24 l-2 10" stroke="#c9772a" stroke-width="4" stroke-linecap="round"/>
+    <ellipse cx="50" cy="70" rx="20" ry="15" fill="#fff6e8"/>
+    <ellipse cx="34" cy="52" rx="5" ry="6.5" fill="#22283d"/>
+    <ellipse cx="66" cy="52" rx="5" ry="6.5" fill="#22283d"/>
+    <circle cx="35.5" cy="49.5" r="1.8" fill="#fff"/>
+    <circle cx="67.5" cy="49.5" r="1.8" fill="#fff"/>
+    <path d="M46 62 h8 l-4 5 Z" fill="#ff8f9a"/>
+    <path d="M50 67 v4 M50 71 q-5 5 -10 1 M50 71 q5 5 10 1" stroke="#22283d" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <path d="M12 60 h14 M12 68 l14 -2 M88 60 h-14 M88 68 l-14 -2" stroke="#22283d" stroke-width="1.6" stroke-linecap="round"/>
+    <ellipse cx="24" cy="64" rx="5" ry="3" fill="#ff9aa5" opacity=".45"/>
+    <ellipse cx="76" cy="64" rx="5" ry="3" fill="#ff9aa5" opacity=".45"/>
+  </symbol>
+</svg>
+
+<div class="wrap">
+  <header class="top">
+    <svg class="cat-icon"><use href="#cat"/></svg>
+    <h1>にゃんこマーケット</h1>
+    <div class="updated" id="updated"></div>
+  </header>
+  <div id="app"></div>
+</div>
+
+<script src="data.js" charset="utf-8"></script>
+<script>
+(function () {
+  'use strict';
+  var D = window.MARKET_DATA;
+  var app = document.getElementById('app');
+
+  // ---- 表示する項目と、トラ先生の解説 ----
+  var GROUPS = [
+    { title: '株価指数（かぶかしすう）', ids: ['n225', 'sp500', 'acwi', 'dow'] },
+    { title: '為替（かわせ）', ids: ['usdjpy', 'eurjpy'] },
+    { title: 'そのほか', ids: ['gold', 'btc'] }
+  ];
+  var ITEMS = {
+    n225: { name: '日経平均株価', sub: '日本', unit: '円', digits: 2,
+      what: '日本を代表する225社の株価から計算した数字だにゃ。「日本の株式市場ぜんたいの調子」をざっくり知る目安になるにゃ。',
+      tip: '上がっていれば「日本の大きな会社の株が全体として買われた日」、下がっていれば「売られた日」という意味だにゃ。ニュースで「日経平均が○円高」と言うのはこの数字のことだにゃ。' },
+    sp500: { name: 'S&P500', sub: 'アメリカ', unit: 'ポイント', digits: 2,
+      what: 'アメリカを代表する約500社の株価から計算した数字だにゃ。「アメリカ株ぜんたいの調子」の目安として世界中で見られているにゃ。',
+      tip: 'アップルやマイクロソフトのような大きな会社ほど、この数字への影響が大きいしくみだにゃ。単位は「円」や「ドル」ではなく「ポイント」だにゃ。' },
+    acwi: { name: 'オルカン（全世界株式）', sub: '参考：米国ETF「ACWI」の値段', unit: 'ドル', digits: 2,
+      what: '「オルカン」は、世界中の株にまとめて投資する投資信託の愛称だにゃ。ここでは同じ指数（MSCI ACWI）に連動するアメリカのETF「ACWI」の値段を参考として出しているにゃ。',
+      tip: '注意：日本で買えるオルカンの「基準価額（円）」とは数字がちがうにゃ。日本のオルカンは円で計算するので、ドル円の動きも値段に影響するにゃ。ここのグラフは「世界の株ぜんたいの動き」をつかむために見てにゃ。' },
+    dow: { name: 'NYダウ', sub: 'アメリカ', unit: 'ドル', digits: 2,
+      what: 'アメリカの有名な大企業30社の株価から計算した数字だにゃ。100年以上の歴史がある、いちばん古くからある指数のひとつだにゃ。',
+      tip: 'S&P500が約500社なのに対して、ダウは30社だけ。なので2つの動きが少しちがう日もあるにゃ。' },
+    usdjpy: { name: 'ドル円', sub: '1ドル ＝ 何円？', unit: '円', digits: 2, fx: true,
+      what: '1ドルを手に入れるのに何円いるか、という数字だにゃ。数字が大きくなる＝「円安」、小さくなる＝「円高」だにゃ。',
+      tip: '150円→160円になると、同じ1ドルに多くの円が必要になる＝円の価値が下がった＝「円安」だにゃ。円安だと輸入品や海外旅行は高くなり、外国の資産を円に直した金額は増えるにゃ。円高はその逆だにゃ。' },
+    eurjpy: { name: 'ユーロ円', sub: '1ユーロ ＝ 何円？', unit: '円', digits: 2, fx: true,
+      what: '1ユーロを手に入れるのに何円いるか、という数字だにゃ。ユーロはヨーロッパの多くの国で使われているお金だにゃ。',
+      tip: '見かたはドル円と同じで、数字が大きくなれば円安、小さくなれば円高だにゃ。' },
+    gold: { name: '金（ゴールド）', sub: 'ニューヨーク先物・1トロイオンスあたり', unit: 'ドル', digits: 1,
+      what: '金の値段だにゃ。1トロイオンス（約31グラム）が何ドルかを表しているにゃ。',
+      tip: '金は、世の中の先行きに不安が広がると買われやすいと言われることが多いにゃ（いつも必ずそうなるわけではないにゃ）。' },
+    btc: { name: 'ビットコイン', sub: '暗号資産・1BTCあたり', unit: '円', digits: 0,
+      what: '代表的な暗号資産（仮想通貨）の値段だにゃ。1ビットコインが何円かを表しているにゃ。',
+      tip: '株や為替とくらべて値動きがとても大きいのが特徴だにゃ。土日も休まず取引されているにゃ。' }
+  };
+  var SOURCES = { nhk: 'NHKニュース（経済）', yahoo: 'Yahoo!ニュース（経済トピックス）' };
+  var RANGES = [ { key: 30, label: '1か月' }, { key: 90, label: '3か月' }, { key: 365, label: '1年' } ];
+  var range = 90;
+  try { var saved = +localStorage.getItem('range'); if (saved === 30 || saved === 90 || saved === 365) range = saved; } catch (e) {}
+
+  // ---- 小さな道具 ----
+  function el(tag, cls, text) {
+    var e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text != null) e.textContent = text;
+    return e;
+  }
+  function cat(cls) {
+    var s = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    s.setAttribute('class', cls || 'cat-icon');
+    s.setAttribute('aria-hidden', 'true');
+    var u = document.createElementNS('http://www.w3.org/2000/svg', 'use');
+    u.setAttribute('href', '#cat');
+    s.appendChild(u);
+    return s;
+  }
+  function fmt(v, digits) {
+    return v.toLocaleString('ja-JP', { minimumFractionDigits: digits, maximumFractionDigits: digits });
+  }
+  function signed(v, digits) { return (v > 0 ? '+' : v < 0 ? '−' : '±') + fmt(Math.abs(v), digits); }
+  function md(dateStr) { var p = dateStr.split('-'); return (+p[1]) + '/' + (+p[2]); }
+  function ymd(dateStr) { var p = dateStr.split('-'); return p[0] + '/' + (+p[1]) + '/' + (+p[2]); }
+  function dir(v) { return v > 0 ? 'up' : v < 0 ? 'down' : 'flat'; }
+  function arrow(v) { return v > 0 ? '▲' : v < 0 ? '▼' : '→'; }
+  function stats(s) {
+    var n = s.closes.length, last = s.closes[n - 1], prev = s.closes[n - 2];
+    return { last: last, prev: prev, diff: last - prev, pct: (last - prev) / prev * 100, date: s.dates[n - 1] };
+  }
+  function slice(s, days) {
+    var lastDate = new Date(s.dates[s.dates.length - 1] + 'T00:00:00');
+    var cut = new Date(lastDate.getTime() - days * 86400000);
+    var i = 0;
+    while (i < s.dates.length - 2 && new Date(s.dates[i] + 'T00:00:00') < cut) i++;
+    return { dates: s.dates.slice(i), closes: s.closes.slice(i) };
+  }
+
+  // ---- データがまだ無いとき ----
+  if (!D || !D.series) {
+    var box = el('div', 'card empty');
+    box.appendChild(cat());
+    box.appendChild(el('h2', null, 'まだデータがないにゃ'));
+    box.appendChild(el('p', null, 'このフォルダにある「更新して開く.bat」をダブルクリックしてにゃ。最新のデータを取ってきてから、この画面をひらくにゃ。'));
+    app.appendChild(box);
+    return;
+  }
+
+  // ---- 更新日時 ----
+  var gen = new Date(D.generatedAt);
+  document.getElementById('updated').textContent =
+    'データを取得した日時：' + gen.getFullYear() + '/' + (gen.getMonth() + 1) + '/' + gen.getDate() + ' ' +
+    ('0' + gen.getHours()).slice(-2) + ':' + ('0' + gen.getMinutes()).slice(-2);
+  var ageH = (Date.now() - gen.getTime()) / 3600000;
+  if (ageH > 30) {
+    app.appendChild(el('div', 'banner', 'データが少し古くなっています（' + Math.floor(ageH / 24) + '日以上前）。「更新して開く.bat」をダブルクリックすると最新になります。'));
+  }
+  if (D.errors && D.errors.length) {
+    app.appendChild(el('div', 'banner', '一部のデータを取得できませんでした。時間をおいて、もう一度「更新して開く.bat」を試してください。'));
+  }
+
+  // ---- トラ先生のひとこと ----
+  (function () {
+    var hello = el('section', 'hello');
+    hello.appendChild(cat());
+    var body = el('div');
+    body.appendChild(el('h2', null, 'トラ先生の「きょうのまとめ」'));
+    var lines = [];
+    ['n225', 'sp500'].forEach(function (id) {
+      var s = D.series[id]; if (!s) return;
+      var st = stats(s), it = ITEMS[id];
+      lines.push(it.name + 'は ' + fmt(st.last, it.digits) + it.unit + '。前の営業日より ' + Math.abs(st.pct).toFixed(2) + '% ' +
+        (st.diff > 0 ? '上がった' : st.diff < 0 ? '下がった' : '変わらなかった') + 'にゃ。');
+    });
+    if (D.series.usdjpy) {
+      var u = stats(D.series.usdjpy);
+      lines.push('ドル円は 1ドル＝' + fmt(u.last, 2) + '円。前の日より ' + fmt(Math.abs(u.diff), 2) + '円ぶん ' +
+        (u.diff > 0 ? '「円安」' : u.diff < 0 ? '「円高」' : '変わらず') + (u.diff !== 0 ? 'の方向に動いたにゃ。' : 'だにゃ。'));
+    }
+    lines.forEach(function (t) { body.appendChild(el('p', null, t)); });
+    body.appendChild(el('p', 'note', '※ 数字の事実をまとめただけで、「買ったほうがいい・売ったほうがいい」というおすすめではないにゃ。'));
+    hello.appendChild(body);
+    app.appendChild(hello);
+  })();
+
+  // ---- 期間の切りかえ ----
+  var charts = [];
+  (function () {
+    var bar = el('div', 'toolbar');
+    var seg = el('div', 'seg');
+    seg.setAttribute('role', 'group');
+    seg.setAttribute('aria-label', 'グラフの期間');
+    RANGES.forEach(function (r) {
+      var b = el('button', null, r.label);
+      b.type = 'button';
+      b.setAttribute('aria-pressed', String(r.key === range));
+      b.addEventListener('click', function () {
+        range = r.key;
+        try { localStorage.setItem('range', String(range)); } catch (e) {}
+        Array.prototype.forEach.call(seg.children, function (c) { c.setAttribute('aria-pressed', String(c === b)); });
+        charts.forEach(function (c) { c(); });
+      });
+      seg.appendChild(b);
+    });
+    bar.appendChild(seg);
+    var lg = el('div', 'legend');
+    lg.innerHTML = '<span><b class="up">▲ 赤</b>＝前の日より上がった</span><span><b class="down">▼ 緑</b>＝下がった</span><span>（日本の証券アプリと同じ色づかい）</span>';
+    bar.appendChild(lg);
+    app.appendChild(bar);
+  })();
+
+  // ---- グラフ（折れ線） ----
+  var NS = 'http://www.w3.org/2000/svg';
+  function svg(tag, attrs) {
+    var e = document.createElementNS(NS, tag);
+    for (var k in attrs) e.setAttribute(k, attrs[k]);
+    return e;
+  }
+  function drawChart(host, data, it, periodEl) {
+    host.innerHTML = '';
+    var W = Math.max(host.clientWidth, 200), H = host.clientHeight || 150;
+    var P = { t: 14, r: 6, b: 20, l: 6 };
+    var v = data.closes, n = v.length;
+    var min = Math.min.apply(null, v), max = Math.max.apply(null, v);
+    if (max === min) { max += 1; min -= 1; }
+    var pad = (max - min) * 0.08; var lo = min - pad, hi = max + pad;
+    function x(i) { return P.l + (W - P.l - P.r) * (n === 1 ? 0 : i / (n - 1)); }
+    function y(val) { return P.t + (H - P.t - P.b) * (1 - (val - lo) / (hi - lo)); }
+
+    var s = svg('svg', { viewBox: '0 0 ' + W + ' ' + H, role: 'img',
+      'aria-label': it.name + 'のグラフ。' + ymd(data.dates[0]) + 'から' + ymd(data.dates[n - 1]) + 'まで。最小' + fmt(min, it.digits) + '、最大' + fmt(max, it.digits) + it.unit });
+    var gid = 'g' + Math.random().toString(36).slice(2);
+    var defs = svg('defs', {});
+    var grad = svg('linearGradient', { id: gid, x1: 0, y1: 0, x2: 0, y2: 1 });
+    grad.appendChild(svg('stop', { offset: '0', 'stop-color': '#5cc8ff', 'stop-opacity': '.28' }));
+    grad.appendChild(svg('stop', { offset: '1', 'stop-color': '#5cc8ff', 'stop-opacity': '0' }));
+    defs.appendChild(grad); s.appendChild(defs);
+
+    // 目盛り線（最大・最小）
+    [max, min].forEach(function (val, idx) {
+      s.appendChild(svg('line', { x1: P.l, x2: W - P.r, y1: y(val), y2: y(val), stroke: '#27314f', 'stroke-width': 1, 'stroke-dasharray': '3 4' }));
+      var t = svg('text', { x: W - P.r, y: y(val) + (idx === 0 ? -4 : 12), 'text-anchor': 'end', fill: '#7682a6', 'font-size': 11 });
+      t.textContent = (idx === 0 ? '最高 ' : '最低 ') + fmt(val, it.digits);
+      s.appendChild(t);
+    });
+    // 日付ラベル
+    var t0 = svg('text', { x: P.l, y: H - 4, fill: '#7682a6', 'font-size': 11 }); t0.textContent = ymd(data.dates[0]); s.appendChild(t0);
+    var t1 = svg('text', { x: W - P.r, y: H - 4, fill: '#7682a6', 'font-size': 11, 'text-anchor': 'end' }); t1.textContent = ymd(data.dates[n - 1]); s.appendChild(t1);
+
+    var d = '';
+    for (var i = 0; i < n; i++) d += (i ? 'L' : 'M') + x(i).toFixed(1) + ' ' + y(v[i]).toFixed(1);
+    s.appendChild(svg('path', { d: d + 'L' + x(n - 1).toFixed(1) + ' ' + (H - P.b) + 'L' + x(0).toFixed(1) + ' ' + (H - P.b) + 'Z', fill: 'url(#' + gid + ')' }));
+    s.appendChild(svg('path', { d: d, fill: 'none', stroke: '#5cc8ff', 'stroke-width': 2, 'stroke-linejoin': 'round', 'stroke-linecap': 'round' }));
+    s.appendChild(svg('circle', { cx: x(n - 1), cy: y(v[n - 1]), r: 4, fill: '#5cc8ff', stroke: '#141b2f', 'stroke-width': 2 }));
+
+    var cross = svg('line', { y1: P.t, y2: H - P.b, stroke: '#aab4d4', 'stroke-width': 1, visibility: 'hidden' });
+    var dot = svg('circle', { r: 4.5, fill: '#fff', stroke: '#5cc8ff', 'stroke-width': 2, visibility: 'hidden' });
+    s.appendChild(cross); s.appendChild(dot);
+    host.appendChild(s);
+
+    var tip = el('div', 'tip'); host.appendChild(tip);
+    function show(clientX) {
+      var rect = host.getBoundingClientRect();
+      var px = (clientX - rect.left) / rect.width * W;
+      var i = Math.round((px - P.l) / (W - P.l - P.r) * (n - 1));
+      i = Math.max(0, Math.min(n - 1, i));
+      cross.setAttribute('x1', x(i)); cross.setAttribute('x2', x(i)); cross.setAttribute('visibility', 'visible');
+      dot.setAttribute('cx', x(i)); dot.setAttribute('cy', y(v[i])); dot.setAttribute('visibility', 'visible');
+      tip.innerHTML = '';
+      tip.appendChild(document.createTextNode(ymd(data.dates[i]) + '　'));
+      tip.appendChild(el('b', null, fmt(v[i], it.digits) + it.unit));
+      tip.style.display = 'block';
+      var left = x(i) / W * rect.width - tip.offsetWidth / 2;
+      tip.style.left = Math.max(0, Math.min(rect.width - tip.offsetWidth, left)) + 'px';
+    }
+    function hide() { cross.setAttribute('visibility', 'hidden'); dot.setAttribute('visibility', 'hidden'); tip.style.display = 'none'; }
+    host.onmousemove = function (e) { show(e.clientX); };
+    host.onmouseleave = hide;
+    host.ontouchstart = host.ontouchmove = function (e) { if (e.touches[0]) show(e.touches[0].clientX); };
+    host.ontouchend = hide;
+
+    var pc = (v[n - 1] - v[0]) / v[0] * 100;
+    periodEl.textContent = '';
+    periodEl.appendChild(document.createTextNode('この期間（' + md(data.dates[0]) + '〜' + md(data.dates[n - 1]) + '）の変化： '));
+    var b = el('b', null, arrow(pc) + ' ' + signed(pc, 1) + '%');
+    b.style.color = pc > 0 ? 'var(--up)' : pc < 0 ? 'var(--down)' : 'var(--text-2)';
+    periodEl.appendChild(b);
+  }
+
+  // ---- カード ----
+  GROUPS.forEach(function (g) {
+    var ids = g.ids.filter(function (id) { return D.series[id]; });
+    if (!ids.length) return;
+    app.appendChild(el('h2', 'section', g.title));
+    var grid = el('div', 'grid');
+    ids.forEach(function (id) {
+      var it = ITEMS[id], s = D.series[id], st = stats(s);
+      var card = el('article', 'card');
+      card.appendChild(el('div', 'name', it.name));
+      card.appendChild(el('div', 'sub', it.sub));
+      var row = el('div', 'row');
+      var val = el('div', 'value', fmt(st.last, it.digits));
+      val.appendChild(el('span', 'unit', it.unit));
+      row.appendChild(val);
+      var word = it.fx ? (st.diff > 0 ? '（円安の方向）' : st.diff < 0 ? '（円高の方向）' : '') : '';
+      row.appendChild(el('span', 'pill ' + dir(st.diff),
+        arrow(st.diff) + ' 前日比 ' + signed(st.diff, it.digits) + '（' + signed(st.pct, 2) + '%）' + word));
+      card.appendChild(row);
+      card.appendChild(el('div', 'meta', md(st.date) + ' 時点の値（現地の日付）'));
+      var chart = el('div', 'chart');
+      card.appendChild(chart);
+      var period = el('div', 'meta');
+      card.appendChild(period);
+
+      var ex = el('div', 'explain');
+      ex.appendChild(cat());
+      var bubble = el('div', 'bubble');
+      bubble.appendChild(el('span', 'q', 'これって何？'));
+      bubble.appendChild(document.createTextNode(it.what));
+      var det = el('details');
+      det.appendChild(el('summary', null, 'もうすこし くわしく'));
+      det.appendChild(el('p', null, it.tip));
+      bubble.appendChild(det);
+      ex.appendChild(bubble);
+      card.appendChild(ex);
+      grid.appendChild(card);
+
+      charts.push(function () { drawChart(chart, slice(s, range), it, period); });
+    });
+    app.appendChild(grid);
+  });
+  charts.forEach(function (c) { c(); });
+  var rt;
+  window.addEventListener('resize', function () { clearTimeout(rt); rt = setTimeout(function () { charts.forEach(function (c) { c(); }); }, 150); });
+
+  // ---- ニュース ----
+  if (D.news && D.news.length) {
+    app.appendChild(el('h2', 'section', '経済ニュースの見出し'));
+    var wrap = el('div', 'news');
+    Object.keys(SOURCES).forEach(function (src) {
+      var list = D.news.filter(function (n) { return n.source === src; });
+      if (!list.length) return;
+      var card = el('div', 'card');
+      card.appendChild(el('h3', null, '出典：' + SOURCES[src]));
+      var ul = el('ul');
+      list.forEach(function (n) {
+        if (!/^https?:\/\//.test(n.link)) return;
+        var li = el('li');
+        var a = el('a', null, n.title);
+        a.href = n.link; a.target = '_blank'; a.rel = 'noopener noreferrer';
+        li.appendChild(a);
+        if (n.date) {
+          var dt = new Date(n.date);
+          li.appendChild(el('time', null, (dt.getMonth() + 1) + '/' + dt.getDate() + ' ' + ('0' + dt.getHours()).slice(-2) + ':' + ('0' + dt.getMinutes()).slice(-2) + ' 配信'));
+        }
+        ul.appendChild(li);
+      });
+      card.appendChild(ul);
+      wrap.appendChild(card);
+    });
+    app.appendChild(wrap);
+    app.appendChild(el('div', 'meta', '見出しをクリックすると、配信元のページが新しいタブで開きます。'));
+  }
+
+  // ---- 用語ミニ辞典 ----
+  (function () {
+    app.appendChild(el('h2', 'section', 'トラ先生の用語ミニ辞典'));
+    var dict = el('div', 'dict');
+    [
+      ['指数（しすう）', 'たくさんの会社の株価をまとめて、ひとつの数字にしたもの。市場ぜんたいの調子を見るのに使うにゃ。'],
+      ['前日比（ぜんじつひ）', '前の営業日の終わりの値段とくらべて、どれだけ上がったか・下がったか、だにゃ。'],
+      ['営業日（えいぎょうび）', '市場がひらいている日のこと。土日や祝日はお休みなので、数字は動かないにゃ。'],
+      ['円高・円安', '1ドル＝150円→140円が「円高」、150円→160円が「円安」。数字が小さくなるほうが円高、とおぼえるにゃ。'],
+      ['投資信託（とうししんたく）', 'たくさんの人からお金を集めて、専門家がいろいろな株などにまとめて投資するしくみだにゃ。'],
+      ['ETF', '株と同じように市場で売り買いできる投資信託のこと。指数と同じ動きをめざすものが多いにゃ。']
+    ].forEach(function (d) {
+      var box = el('div');
+      box.appendChild(el('b', null, d[0]));
+      box.appendChild(document.createTextNode(d[1]));
+      dict.appendChild(box);
+    });
+    app.appendChild(dict);
+  })();
+
+  // ---- 注意書き ----
+  (function () {
+    var f = el('footer');
+    var ul = el('ul');
+    [
+      'この画面は勉強と情報整理のためのものです。売買のおすすめ（投資助言）ではありません。',
+      '価格データの出典：Yahoo Finance。「更新して開く.bat」を実行した時点の値で、リアルタイムではありません。取引時間中に更新した場合は、その時点の途中の値が表示されます。',
+      '「オルカン」は、同じ指数（MSCI ACWI）に連動する米国ETF「ACWI」のドル建て価格を参考として表示しています。日本の投資信託の基準価額とは異なります。',
+      '数字にまちがいや遅れがある可能性があります。大事な判断の前には、証券会社などの公式の情報を確認してください。'
+    ].forEach(function (t) { ul.appendChild(el('li', null, t)); });
+    f.appendChild(ul);
+    app.appendChild(f);
+  })();
+})();
+</script>
+</body>
+</html>
